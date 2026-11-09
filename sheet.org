@@ -1,0 +1,111 @@
+* how to create ssh key
+  ssh-keygen -t ed25519 -C "webside.c"
+  
+* cool way to get remote access
+** generate the keys
+  ssh-keygen -t ed25519 -C "ubuntu"
+** copy the public key generated
+  cat ubuntu_id_ed25519.pub
+  and paste it in the remote machine inside the folder cd ~/.ssh/authorized_keys
+
+
+** make folder in host machine
+  mkdir .ssh
+  cd .ssh
+  vim config
+
+** config file content
+  Host coolname
+       HostName 192.168.1.204
+       User mbwntsm
+       IdentityFile ~/.ssh/keyname
+       Port 22
+
+** and up it will work
+  now just type ssh coolname and you be able to connect
+
+* how to ssh git account
+** create the key
+   ssh-keygen -t ed25519 -C "account name"
+   cd .ssh/
+   copy and paste this account name public key to git ssh key generation key
+   
+** cd to .ssh file
+   cd .ssh/config
+
+** now add this script to config file
+   Host git-username
+        HostName fuqyumeen
+	User git
+	Identityfile ~/.ssh/account_name_private_key
+        IdentitiesOnly yes
+	
+** clone the repo
+   git remote add origin git@github.com:fuqyumeen/burner.git
+   
+   git remote -v
+
+   origin  git@github.com:fuqyumeen/burner.git (fetch)
+   origin  git@github.com:fuqyumeen/burner.git (push)
+
+   git remote set-url origin git@github-fuqyumeen:fuqyumeen/burner.git
+
+   ssh -T git@github.com
+
+   Hi fuqyumeen! You've successfully authenticated, but GitHub does not provide shell access.
+
+   now you will be ready to push :)
+   
+* how to manage different keys for differenct git accounts
+** generate a new ssh key  for your accounts
+   ssh-keygen -t ed25519 -C "your-second-account-email@gmail.com" -f ~/.ssh/twizz_id_ed25519
+
+   this will creates:
+   ~/.ssh/twizz_id_ed25519
+   ~/.ssh/twizz_id_ed25519.pub
+
+** add the new public key to your github account
+   cat ~/.ssh/twizz_id_ed25519.pub
+
+** configure SSH for both accounts
+   nano ~/.ssh/config
+
+   put this inside
+# First GitHub account
+Host github-fuqyumeen
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/ubuntu_id_ed25519
+    IdentitiesOnly yes
+
+# Second GitHub account
+Host github-twizz
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/twizz_id_ed25519
+    IdentitiesOnly yes
+
+   save and exit
+   then
+
+   chmot 600 ~/.ssh/config
+
+** test both accounts independently
+
+   first account
+   ssh -T git@github-fuqyumeen
+
+   secont account
+   ssh -T git@github-twizz
+
+   you should get the corresponding github usernames in the responses
+   git remote set-url origin git@github-fuqyumeen:fuqyumeen/burner.git
+   git remote set-url origin git@github-twizz:twizztwizzy/repository.git
+
+** now simply push
+  git push -u origin master
+
+
+  
+   
+  

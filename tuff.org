@@ -1,0 +1,404 @@
+#+TITLE: SSH & Git Authentication Guide #+AUTHOR: Personal Documentation #+STARTUP: overview #+OPTIONS: toc:3 num:nil
+
+Table of Contents :CONTENTS:
+[[#introduction][Introduction]]
+[[#generating-an-ssh-key][1. Generating an SSH Key]]
+[[#remote-server-access-using-ssh][2. Remote Server Access Using SSH]]
+[[#connecting-github-using-ssh][3. Connecting GitHub Using SSH]]
+[[#managing-multiple-github-accounts][4. Managing Multiple GitHub Accounts]]
+[[#useful-ssh-commands][5. Useful SSH Commands]]
+[[#troubleshooting][6. Troubleshooting]] :END:
+Introduction SSH (Secure Shell) is a cryptographic network protocol that allows secure communication between two machines.
+
+SSH keys provide a secure way to authenticate without repeatedly entering passwords.
+
+This documentation covers:
+
+Generating SSH keys.
+Connecting to remote Linux machines.
+Configuring SSH authentication for GitHub.
+Managing multiple GitHub accounts on a single machine.
+Using different SSH keys for different Git repositories.
+Generating an SSH Key
+
+:PROPERTIES: :CUSTOM_ID: generating-an-ssh-key :END:
+
+** Generate a new SSH key
+
+Use the following command to generate an Ed25519 SSH key:
+
+#+BEGIN_SRC bash ssh-keygen -t ed25519 -C "website.com" #+END_SRC
+
+Explanation:
+
+=ssh-keygen=: SSH key generation utility.
+=-t ed25519=: Specifies the Ed25519 algorithm.
+=-C=: Adds a comment to identify the key.
+
+** Choose the key location
+
+When prompted, provide a location for the key or press Enter to use the default:
+
+#+BEGIN_SRC text Enter file in which to save the key: #+END_SRC
+
+You can also specify a custom location:
+
+#+BEGIN_SRC bash ssh-keygen -t ed25519 -C "ubuntu" -f ~/.ssh/ubuntu_id_ed25519 #+END_SRC
+
+This generates two files:
+
+#+BEGIN_SRC text ~/.ssh/ubuntu_id_ed25519 ~/.ssh/ubuntu_id_ed25519.pub #+END_SRC
+
+IMPORTANT:
+
+The file without =.pub= is your private key.
+The file with =.pub= is your public key.
+Never share your private key.
+Only share your public key with trusted services or servers.
+Remote Server Access Using SSH
+
+:PROPERTIES: :CUSTOM_ID: remote-server-access-using-ssh :END:
+
+This section explains how to connect to a remote Linux machine using SSH key authentication.
+
+** Step 1: Generate an SSH key
+
+Generate a dedicated key for your remote server:
+
+#+BEGIN_SRC bash ssh-keygen -t ed25519 -C "ubuntu" -f ~/.ssh/ubuntu_id_ed25519 #+END_SRC
+
+** Step 2: Copy the public key
+
+Display the generated public key:
+
+#+BEGIN_SRC bash cat ~/.ssh/ubuntu_id_ed25519.pub #+END_SRC
+
+Copy the entire output.
+
+** Step 3: Add the public key to the remote machine
+
+On the remote machine, create the SSH directory if it does not exist:
+
+#+BEGIN_SRC bash mkdir -p ~/.ssh chmod 700 ~/.ssh #+END_SRC
+
+Add the copied public key to:
+
+#+BEGIN_SRC bash ~/.ssh/authorized_keys #+END_SRC
+
+Set the correct permissions:
+
+#+BEGIN_SRC bash chmod 600 ~/.ssh/authorized_keys #+END_SRC
+
+Alternatively, if password-based SSH access is available, you can transfer the key automatically:
+
+#+BEGIN_SRC bash ssh-copy-id -i ~/.ssh/ubuntu_id_ed25519.pub username@192.168.31.204 #+END_SRC
+
+** Step 4: Configure SSH on your local machine
+
+Create the SSH directory if necessary:
+
+#+BEGIN_SRC bash mkdir -p ~/.ssh #+END_SRC
+
+Open the SSH configuration file:
+
+#+BEGIN_SRC bash nano ~/.ssh/config #+END_SRC
+
+Add the following configuration:
+
+#+BEGIN_SRC ssh-config Host coolname HostName 192.168.31.204 User mbwntsm IdentityFile ~/.ssh/ubuntu_id_ed25519 IdentitiesOnly yes Port 22 #+END_SRC
+
+Configuration explanation:
+
+=Host=: A custom alias for the remote machine.
+=HostName=: The remote machine's IP address or domain.
+=User=: The remote machine's username.
+=IdentityFile=: Path to the private SSH key.
+=IdentitiesOnly yes=: Ensures SSH uses the specified identity.
+=Port=: SSH server port.
+
+** Step 5: Set SSH configuration permissions
+
+#+BEGIN_SRC bash chmod 700 ~/.ssh chmod 600 ~/.ssh/config #+END_SRC
+
+** Step 6: Connect to the remote machine
+
+Instead of typing the complete SSH command:
+
+#+BEGIN_SRC bash ssh -i ~/.ssh/ubuntu_id_ed25519 mbwntsm@192.168.31.204 #+END_SRC
+
+Simply use:
+
+#+BEGIN_SRC bash ssh coolname #+END_SRC
+
+You are now connected to the remote machine.
+
+Connecting GitHub Using SSH
+
+:PROPERTIES: :CUSTOM_ID: connecting-github-using-ssh :END:
+
+SSH authentication allows you to interact with GitHub without entering your username and password every time.
+
+** Step 1: Generate an SSH key
+
+#+BEGIN_SRC bash ssh-keygen -t ed25519 -C "account-email@gmail.com" -f ~/.ssh/broski_id_ed25519 #+END_SRC
+
+** Step 2: Copy the public key
+
+#+BEGIN_SRC bash cat ~/.ssh/broski_id_ed25519.pub #+END_SRC
+
+Copy the output.
+
+** Step 3: Add the SSH key to GitHub
+
+Open GitHub.
+Navigate to Settings.
+Open SSH and GPG keys.
+Click New SSH key.
+Give the key a recognizable title.
+Paste your public key.
+Save the key.
+
+GitHub settings: https://github.com/settings/ssh/new
+
+** Step 4: Configure SSH
+
+Open your SSH configuration:
+
+#+BEGIN_SRC bash nano ~/.ssh/config #+END_SRC
+
+Add:
+
+#+BEGIN_SRC ssh-config Host github-broski HostName github.com User git IdentityFile ~/.ssh/broski_id_ed25519 IdentitiesOnly yes #+END_SRC
+
+** Step 5: Test GitHub authentication
+
+#+BEGIN_SRC bash ssh -T git@github-broski #+END_SRC
+
+A successful authentication response looks like:
+
+#+BEGIN_SRC text Hi broski! You've successfully authenticated, but GitHub does not provide shell access. #+END_SRC
+
+NOTE: The displayed GitHub username depends on the account associated with your SSH public key.
+
+** Step 6: Clone a repository
+
+Use the SSH alias when cloning:
+
+#+BEGIN_SRC bash git clone git@github-broski:broski/burner.git #+END_SRC
+
+If you already have a repository configured with another remote URL, update it:
+
+#+BEGIN_SRC bash git remote set-url origin git@github-broski:broski/burner.git #+END_SRC
+
+Verify the remote:
+
+#+BEGIN_SRC bash git remote -v #+END_SRC
+
+Expected output:
+
+#+BEGIN_SRC text origin git@github-broski:broski/burner.git (fetch) origin git@github-broski:broski/burner.git (push) #+END_SRC
+
+You can now push and pull using SSH.
+
+Managing Multiple GitHub Accounts
+
+:PROPERTIES: :CUSTOM_ID: managing-multiple-github-accounts :END:
+
+When working with multiple GitHub accounts on the same machine, each account should have its own SSH key and SSH configuration alias.
+
+For example:
+
+First account: broski
+Second account: twizzy
+
+** Step 1: Generate SSH keys for both accounts
+
+First GitHub account:
+
+#+BEGIN_SRC bash ssh-keygen -t ed25519 -C "broski@example.com" -f ~/.ssh/ubuntu_id_ed25519 #+END_SRC
+
+Second GitHub account:
+
+#+BEGIN_SRC bash ssh-keygen -t ed25519 -C "twizzy@example.com" -f ~/.ssh/twizzy_id_ed25519 #+END_SRC
+
+This creates the following files:
+
+#+BEGIN_SRC text ~/.ssh/ ├── config ├── ubuntu_id_ed25519 ├── ubuntu_id_ed25519.pub ├── twizzy_id_ed25519 └── twizzy_id_ed25519.pub #+END_SRC
+
+** Step 2: Add both public keys to their respective GitHub accounts
+
+Display the first public key:
+
+#+BEGIN_SRC bash cat ~/.ssh/ubuntu_id_ed25519.pub #+END_SRC
+
+Display the second public key:
+
+#+BEGIN_SRC bash cat ~/.ssh/twizzy_id_ed25519.pub #+END_SRC
+
+Add each public key to its corresponding GitHub account.
+
+Remember: Never upload or share the private key files.
+
+** Step 3: Configure SSH for both accounts
+
+Open the SSH configuration file:
+
+#+BEGIN_SRC bash nano ~/.ssh/config #+END_SRC
+
+Add the following configurations:
+
+#+BEGIN_SRC ssh-config
+
+First GitHub account - Broski
+
+Host github-broski HostName github.com User git IdentityFile ~/.ssh/ubuntu_id_ed25519 IdentitiesOnly yes
+
+Second GitHub account - Twizzy
+
+Host github-twizzy HostName github.com User git IdentityFile ~/.ssh/twizzy_id_ed25519 IdentitiesOnly yes #+END_SRC
+
+Save and exit.
+
+** Step 4: Set SSH configuration permissions
+
+#+BEGIN_SRC bash chmod 700 ~/.ssh chmod 600 ~/.ssh/config chmod 600 ~/.ssh/ubuntu_id_ed25519 chmod 600 ~/.ssh/twizzy_id_ed25519 #+END_SRC
+
+** Step 5: Test both GitHub accounts independently
+
+Test the Broski account:
+
+#+BEGIN_SRC bash ssh -T git@github-broski #+END_SRC
+
+Test the Twizzy account:
+
+#+BEGIN_SRC bash ssh -T git@github-twizzy #+END_SRC
+
+Each command should authenticate using its corresponding SSH key.
+
+The response should display the GitHub username associated with that key.
+
+** Step 6: Configure Git repositories to use the correct account
+
+For a repository belonging to Broski:
+
+#+BEGIN_SRC bash git remote set-url origin git@github-broski:broski/burner.git #+END_SRC
+
+For a repository belonging to Twizzy:
+
+#+BEGIN_SRC bash git remote set-url origin git@github-twizzy:twizzy/repository.git #+END_SRC
+
+Verify the configured remote:
+
+#+BEGIN_SRC bash git remote -v #+END_SRC
+
+IMPORTANT: The SSH alias determines which private key Git uses for authentication.
+
+** Step 7: Push changes
+
+For a new local branch named master:
+
+#+BEGIN_SRC bash git push -u origin master #+END_SRC
+
+For repositories using main as their default branch:
+
+#+BEGIN_SRC bash git push -u origin main #+END_SRC
+
+You can now work with multiple GitHub accounts without constantly switching SSH keys.
+
+Useful SSH Commands
+
+:PROPERTIES: :CUSTOM_ID: useful-ssh-commands :END:
+
+** Generate an SSH key
+
+#+BEGIN_SRC bash ssh-keygen -t ed25519 -C "email@example.com" #+END_SRC
+
+** Display a public key
+
+#+BEGIN_SRC bash cat ~/.ssh/keyname.pub #+END_SRC
+
+** Open SSH configuration
+
+#+BEGIN_SRC bash nano ~/.ssh/config #+END_SRC
+
+** Test SSH authentication
+
+#+BEGIN_SRC bash ssh -T git@github.com #+END_SRC
+
+** Test a specific GitHub account
+
+#+BEGIN_SRC bash ssh -T git@github-broski #+END_SRC
+
+** Check configured Git remotes
+
+#+BEGIN_SRC bash git remote -v #+END_SRC
+
+** Change the remote URL
+
+#+BEGIN_SRC bash git remote set-url origin git@github-broski:OWNER/REPOSITORY.git #+END_SRC
+
+** Check SSH connection with verbose output
+
+#+BEGIN_SRC bash ssh -vT git@github-broski #+END_SRC
+
+** Check SSH directory permissions
+
+#+BEGIN_SRC bash ls -la ~/.ssh #+END_SRC
+
+Troubleshooting
+
+:PROPERTIES: :CUSTOM_ID: troubleshooting :END:
+
+** Permission denied (publickey)
+
+Possible causes:
+
+The wrong private key is being used.
+The public key has not been added to GitHub.
+The SSH configuration contains an incorrect IdentityFile path.
+The remote server does not contain the public key in authorized_keys.
+
+Solution:
+
+#+BEGIN_SRC bash ssh -vT git@github-broski #+END_SRC
+
+Inspect which identity SSH attempts to use.
+
+** Bad permissions on SSH configuration
+
+SSH requires restrictive permissions for private keys and configuration files.
+
+Run:
+
+#+BEGIN_SRC bash chmod 700 ~/.ssh chmod 600 ~/.ssh/config chmod 600 ~/.ssh/id_ed25519 #+END_SRC
+
+** Git is using the wrong GitHub account
+
+Check the remote:
+
+#+BEGIN_SRC bash git remote -v #+END_SRC
+
+Make sure the remote uses the correct SSH alias.
+
+For example:
+
+#+BEGIN_SRC bash git remote set-url origin git@github-twizzy:twizzy/repository.git #+END_SRC
+
+** SSH agent is not loading the key
+
+Start the SSH agent:
+
+#+BEGIN_SRC bash eval "$(ssh-agent -s)" #+END_SRC
+
+Add your key:
+
+#+BEGIN_SRC bash ssh-add ~/.ssh/ubuntu_id_ed25519 #+END_SRC
+
+** Final Notes
+
+Keep separate SSH keys for different GitHub accounts.
+Never share private SSH keys.
+Use meaningful SSH aliases to avoid authentication confusion.
+Always verify the Git remote before pushing code.
+Use =ssh -vT= when debugging authentication problems.
+Prefer Ed25519 keys for new SSH configurations.
